@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cd /home/homeassistant/.homeassistant
-source /srv/homeassistant/bin/activate
+cd /home/hassmurguis/.homeassistant
+source /srv/hassmurguis/bin/activate
 hass --script check_config
 
 git add .

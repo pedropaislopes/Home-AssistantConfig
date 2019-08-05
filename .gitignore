@@ -9,6 +9,7 @@
 !dehydrated
 !*.sh
 !custom_components
+!cronfile
 
 # Ignore folders.
 .storage

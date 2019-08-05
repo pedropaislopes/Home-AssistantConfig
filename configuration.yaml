@@ -1,0 +1,1377 @@
+homeassistant:
+  # Name of the location where Home Assistant is running
+  name: Apartamento Murguis
+  # Location required to calculate the time the sun rises and sets
+  latitude: !secret latitude
+  longitude: !secret longitude
+  # Impacts weather/sunrise data (altitude above sea level in meters)
+  elevation: !secret elevation
+  # metric for Metric, imperial for Imperial
+  unit_system: metric
+  # Pick yours from here: http://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  time_zone: America/Sao_Paulo
+  # Customization file
+  customize: !include customize.yaml
+  whitelist_external_dirs:
+    - /home/hassmurguis/.homeassistant
+
+  auth_providers:
+    - type: trusted_networks
+      trusted_networks:
+        - 127.0.0.1
+        - ::1
+      allow_bypass_login: true
+    - type: homeassistant
+
+
+# Configure a default setup of Home Assistant (frontend, api, etc)
+#default_config:
+
+# Configurando individualmente membros do default_config
+#cloud:
+device_tracker:
+#  - platform: nmap_tracker
+#    consider_home: 60
+#    interval_seconds: 1
+#    scan_options: " -F --host-timeout 1s"
+#    hosts:
+#      - 192.168.143.60
+#      - 192.168.143.61
+#  - platform: ping
+#    consider_home: 60
+#    interval_seconds: 1
+#    hosts:
+#      iphonepedro_ping: 192.168.143.60
+#      iphoneamerica_ping: 192.168.143.61
+  - platform: ping_arp
+    count: 5
+    consider_home: 60
+    interval_seconds: 1
+    hosts:
+      iphonepedro_ping_arp: 192.168.143.60
+      iphoneamerica_ping_arp: 192.168.143.61
+
+config:
+#conversation:
+frontend:
+history:
+logbook:
+map:
+mobile_app:
+person:
+sun:
+system_health:
+updater:
+zeroconf:
+
+logger:
+  default: warn
+  logs:
+    braviarc: fatal
+#    pyvera: debug
+#    homeassistant.components.serial: debug
+  
+# Show the introduction message on startup.
+#introduction:
+
+# Discover some devices automatically
+#discovery:
+
+# Text to speech
+#tts:
+#  - platform: google
+
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+
+mqtt:
+  broker: localhost
+  username: !secret mqtt_murguis_username
+  password: !secret mqtt_murguis_password
+
+http:
+  ssl_certificate: !secret ssl_certificate
+  ssl_key: !secret ssl_key
+  base_url: !secret base_url
+  server_port: !secret server_port
+
+# Para mostrar status do roteador de entrada
+#upnp:
+
+# Para tracking de dispositivos iOS com HASS APP
+ios:
+
+# Sensors
+
+binary_sensor:
+  - platform: mqtt
+    name: "Movimento escritório"
+    state_topic: "nodered/escritorio/movimento"
+    payload_on: 'ON'
+    payload_off: 'OFF'
+
+
+
+sensor:
+
+  - platform: waze_travel_time
+    origin: !secret waze_origin
+    destination: !secret waze_destination
+    region: 'EU'
+    name: "De casa para Pepsico"
+
+  # Weather prediction
+  - platform: yr
+
+  - platform: serial
+    name: auto_principal
+    serial_port: /dev/ttyUSB0
+#    serial_port: /dev/null
+    baudrate: 115200
+    value_template: '{{ value_json }}'
+  - platform: serial
+    name: auto_secundaria
+    serial_port: /dev/ttyACM0
+#    serial_port: /dev/null
+    baudrate: 115200
+    value_template: '{{ value_json }}'
+
+  - platform: template
+    sensors:
+
+      ###########################################################
+      # NTC da auto_principal
+      temp_autoprincipal:
+        device_class: temperature
+        friendly_name: "Temp AutoPrincipal"
+        unit_of_measurement: '°C'
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'DHT') != None %}
+            {% if states.sensor.auto_principal.attributes.DHT[4]|float > 0 %}
+              {{states.sensor.auto_principal.attributes.DHT[4]|float|round(1)}}
+            {% endif %}
+          {% else %}
+            unavailable
+          {% endif %}
+     
+      
+      ###########################################################
+      # DHTs e NTC da auto_secundaria
+      temp_tv:
+        device_class: temperature
+        friendly_name: "Temperatura TV"
+        unit_of_measurement: '°C'
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'DHT') != None %}
+            {% if states.sensor.auto_secundaria.attributes.DHT[0]|float > 0 %}
+              {{states.sensor.auto_secundaria.attributes.DHT[0]|float|round(1)}}
+                {% endif %}
+          {% else %}
+            unavailable
+          {% endif %}
+      umid_tv:
+        device_class: humidity
+        friendly_name: "Umidade TV"
+        unit_of_measurement: '%'
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'DHT') != None %}
+            {% if states.sensor.auto_secundaria.attributes.DHT[1]|float > 0 %}
+              {{states.sensor.auto_secundaria.attributes.DHT[1]|float|round(1)}}
+            {% endif %}
+          {% else %}
+            unavailable
+          {% endif %}
+      temp_autosecundaria:
+        device_class: temperature
+        friendly_name: "Temp AutoSecundaria"
+        unit_of_measurement: '°C'
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'DHT') != None %}
+            {% if states.sensor.auto_secundaria.attributes.DHT[4]|float > 0 %}
+              {{states.sensor.auto_secundaria.attributes.DHT[4]|float|round(1)}}
+            {% endif %}
+          {% else %}
+            unavailable
+          {% endif %}
+
+
+      ###########################################################
+      # DHTs e NTC da auto_suite
+      temp_suite:
+        device_class: temperature
+        friendly_name: "Temperatura Suíte"
+        unit_of_measurement: '°C'
+        value_template: >-
+          {% if states('sensor.result_suite') != 'unknown' and states('sensor.result_suite') != None %}
+            {% if states.sensor.result_suite.state
+            | regex_findall_index('\"DHT\":(\[.*?\])')
+            | regex_findall_index('\[(.*)\]')
+            | regex_findall_index('(-?\d+\.?\d*),?', 0)
+            | float|round(1)
+            %}
+              {{ states.sensor.result_suite.state
+              | regex_findall_index('\"DHT\":(\[.*?\])')
+              | regex_findall_index('\[(.*)\]')
+              | regex_findall_index('(-?\d+\.?\d*),?', 0)
+              | float|round(1)
+              }}
+            {% endif %}
+          {% else %}
+            unavailable
+          {% endif %}
+      umid_suite:
+        device_class: humidity
+        friendly_name: "Umidade Suíte"
+        unit_of_measurement: '%'
+        value_template: >-
+          {% if states('sensor.result_suite') != 'unknown' and states('sensor.result_suite') != None %}
+            {% if states.sensor.result_suite.state
+            | regex_findall_index('\"DHT\":(\[.*?\])')
+            | regex_findall_index('\[(.*)\]')
+            | regex_findall_index('(-?\d+\.?\d*),?', 1)
+            | float|round(1)
+            %}
+              {{ states.sensor.result_suite.state
+              | regex_findall_index('\"DHT\":(\[.*?\])')
+              | regex_findall_index('\[(.*)\]')
+              | regex_findall_index('(-?\d+\.?\d*),?', 1)
+              | float|round(1)
+              }}
+            {% endif %}
+          {% else %}
+            unavailable
+          {% endif %}
+      temp_autosuite:
+        device_class: temperature
+        friendly_name: "Temp AutoSuíte"
+        unit_of_measurement: '°C'
+        value_template: >-
+          {% if states('sensor.result_suite') != 'unknown' and states('sensor.result_suite') != None %}
+            {% if states.sensor.result_suite.state
+            | regex_findall_index('\"DHT\":(\[.*?\])')
+            | regex_findall_index('\[(.*)\]')
+            | regex_findall_index('(-?\d+\.?\d*),?', 4)
+            | float|round(1)
+            %}
+              {{ states.sensor.result_suite.state
+              | regex_findall_index('\"DHT\":(\[.*?\])')
+              | regex_findall_index('\[(.*)\]')
+              | regex_findall_index('(-?\d+\.?\d*),?', 4)
+              | float|round(1)
+              }}
+            {% endif %}
+          {% else %}
+            unavailable
+          {% endif %}
+      # Valor do status do ventilador da suíte
+      vent_suite:
+        value_template: >-
+          {% if states('sensor.result_suite') != 'unknown' and states('sensor.result_suite') != None %}
+            {{ states.sensor.result_suite.state
+            | regex_findall_index('\"vent\":(\[.*?\])')
+            | regex_findall_index('\[(.*)\]')
+            | regex_findall_index('(-?\d+\.?\d*),?', 0)
+            | int
+            }}
+          {% else %}
+            unavailable
+          {% endif %}
+          
+
+  ############################################################3
+  # Sensores no sensor_escritorio
+  - platform: mqtt
+    device_class: temperature
+    name: "Temperatura Escritório"
+    state_topic: "tele/sensor_escritorio/SENSOR"
+    value_template: "{{ value_json.AM2301.Temperature }}"
+    unit_of_measurement: '°C'
+  - platform: mqtt
+    device_class: humidity
+    name: "Umidade Escritório"
+    state_topic: "tele/sensor_escritorio/SENSOR"
+    value_template: "{{ value_json.AM2301.Humidity }}"
+    unit_of_measurement: "%"
+  - platform: mqtt
+    device_class: humidity
+    name: "Iluminância Escritório"
+    state_topic: "tele/sensor_escritorio/SENSOR"
+    value_template: "{{ value_json.TSL2561.Illuminance }}"
+    unit_of_measurement: "lm"
+           
+          
+  ############################################################3
+  # BME280 no luzes_churrasqueira
+  - platform: mqtt
+    device_class: pressure
+    name: "Pressão atmosférica"
+    state_topic: "tele/luzes_churrasqueira/SENSOR"
+    value_template: "{{ value_json.BME280.Pressure }}"
+    unit_of_measurement: "hPa"
+  - platform: mqtt
+    device_class: temperature
+    name: "Temperatura varanda"
+    state_topic: "tele/luzes_churrasqueira/SENSOR"
+    value_template: "{{ value_json.BME280.Temperature }}"
+    unit_of_measurement: '°C'
+  - platform: mqtt
+    device_class: humidity
+    name: "Umidade varanda"
+    state_topic: "tele/luzes_churrasqueira/SENSOR"
+    value_template: "{{ value_json.BME280.Humidity }}"
+    unit_of_measurement: "%"
+
+  ############################################################3
+  # DHT22 no sensor_quartolorena
+  - platform: mqtt
+    device_class: temperature
+    name: "Temperatura quartolorena"
+    state_topic: "tele/sensor_quartolorena/SENSOR"
+    value_template: "{{ value_json.SI7021.Temperature }}"
+    unit_of_measurement: '°C'
+  - platform: mqtt
+    device_class: humidity
+    name: "Umidade quartolorena"
+    state_topic: "tele/sensor_quartolorena/SENSOR"
+    value_template: "{{ value_json.SI7021.Humidity }}"
+    unit_of_measurement: "%"
+
+  ###########################################################
+  # String de resposta do bridge serial auto_suite
+  - platform: mqtt
+    name: "Suite raw"
+    state_topic: "tele/auto_suite/RESULT"
+  - platform: mqtt
+    name: "Result suíte"
+    state_topic: "tele/auto_suite/RESULT"
+    value_template: >-
+      '{{ value|regex_replace(find="{\"SerialReceived\":\"", replace="",ignorecase=False)|regex_replace(find="\"}", replace="",ignorecase=False) }}'
+
+  ###########################################################
+  # Status dos sonoffs (Wi-Fi e versão)
+  #
+  # pia_cozinha
+  - platform: mqtt
+    name: "Pia Cozinha"
+    state_topic: "stat/pia_cozinha/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/pia_cozinha/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/pia_cozinha/STATE"
+    name: "Pia Cozinha WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/pia_cozinha/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # coifa_cozinha
+  - platform: mqtt
+    name: "Coifa Cozinha"
+    state_topic: "stat/coifa_cozinha/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/coifa_cozinha/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/coifa_cozinha/STATE"
+    name: "Coifa Cozinha WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/coifa_cozinha/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # led_cozinha
+  - platform: mqtt
+    name: "LED Cozinha"
+    state_topic: "stat/led_cozinha/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/led_cozinha/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/led_cozinha/STATE"
+    name: "LED Cozinha WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/led_cozinha/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # luzes_churrasqueira
+  - platform: mqtt
+    name: "Luzes churrasqueira"
+    state_topic: "stat/luzes_churrasqueira/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/luzes_churrasqueira/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/luzes_churrasqueira/STATE"
+    name: "Luzes churrasqueira WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/luzes_churrasqueira/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # sensor_quartolorena
+  - platform: mqtt
+    name: "Sensor quartolorena"
+    state_topic: "stat/sensor_quartolorena/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/sensor_quartolorena/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/sensor_quartolorena/STATE"
+    name: "Sensor quartolorena WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/sensor_quartolorena/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # luz_quartolorena
+  - platform: mqtt
+    name: "Luz quartolorena"
+    state_topic: "stat/luz_quartolorena/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/luz_quartolorena/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/luz_quartolorena/STATE"
+    name: "Luz quartolorena WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/luz_quartolorena/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # auto_suite
+  - platform: mqtt
+    name: "Auto suíte"
+    state_topic: "stat/auto_suite/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/auto_suite/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/auto_suite/STATE"
+    name: "Auto suíte WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/auto_suite/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # sensor_escritorio
+  - platform: mqtt
+    name: "Sensor escritório"
+    state_topic: "stat/sensor_escritorio/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/sensor_escritorio/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/sensor_escritorio/STATE"
+    name: "Sensor escritório WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/sensor_escritorio/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # lampada_cor_1
+  - platform: mqtt
+    name: "Lâmpada Cor 1 (Pedro)"
+    state_topic: "stat/lampada_cor_1/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/lampada_cor_1/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/lampada_cor_1/STATE"
+    name: "Lâmpada Cor 1 (Pedro) WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/lampada_cor_1/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # lampada_cor_2
+  - platform: mqtt
+    name: "Lâmpada Cor 2 (América)"
+    state_topic: "stat/lampada_cor_2/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/lampada_cor_2/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/lampada_cor_2/STATE"
+    name: "Lâmpada Cor 2 (América) WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/lampada_cor_2/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+
+
+    
+
+light:
+  ################################################################
+  # circ: auto_principal
+  - platform: template
+    lights:
+      # Luz da porta de entrada
+      c0_porta:
+        friendly_name: "Porta"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[0] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,0,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,0,0>'
+      # Luz da mesa fraca
+      c1_mesa2:
+        friendly_name: "Mesa fraca"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[1] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,1,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,1,0>'
+      # Luz da mesa forte
+      c2_mesa4:
+        friendly_name: "Mesa média"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[2] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,2,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,2,0>'
+      # Luz do centro da sala fraca
+      c3_centro2:
+        friendly_name: "Centro fraca"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[3] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,3,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,3,0>'
+      # Luz do centro da sala forte
+      c4_centro4:
+        friendly_name: "Centro média"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[4] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,4,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,4,0>'
+      # Luz do centro da sala fraca
+      c5_cozinha1:
+        friendly_name: "Cozinha fraca"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[5] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,5,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,5,0>'
+      # Luz do centro da sala forte
+      c6_cozinha2:
+        friendly_name: "Cozinha média"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[6] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,6,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,6,0>'
+      # Luz do centro da área de serviço
+      c7_aservico:
+        friendly_name: "Área de Serviço"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[7] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,7,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,7,0>'
+      # Luz do banheiro de empregada
+      c8_bservico:
+        friendly_name: "Banheiro de Empregada"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[8] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,8,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,8,0>'
+      # Luz dimmer da varanda
+      d0_vrd:
+        friendly_name: "Varanda"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circdm') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circdm')[0] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        level_template: >-
+          {% if state_attr('sensor.auto_principal', 'circdm') != None %}
+            {% set t = (state_attr('sensor.auto_principal', 'circdm')[0] * 2.55) | int %}
+            {{ t }}
+          {% else %}
+            0
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<m,0,100>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<e,0,0>'
+        set_level:
+          - service: shell_command.auto_principal_script
+            data_template:
+              brightness: '{{ brightness }}'
+              arg: '<b,0,{{ brightness * 100 / 255 }}>'
+      # Luz dimmer da sanca da porta
+      d1_scp:
+        friendly_name: "Sanca porta"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circdm') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circdm')[1] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        level_template: >-
+          {% if state_attr('sensor.auto_principal', 'circdm') != None %}
+            {% set t = (state_attr('sensor.auto_principal', 'circdm')[1] * 2.55) | int %}
+            {{ t }}
+          {% else %}
+            0
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<m,1,100>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<e,1,0>'
+        set_level:
+          - service: shell_command.auto_principal_script
+            data_template:
+              brightness: '{{ brightness }}'
+              arg: '<b,1,{{ brightness * 100 / 255 }}>'
+
+  ################################################################
+  # circ: auto_secundaria
+  #
+      # Luz da TV
+      c0_tv:
+        friendly_name: "TV"
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_secundaria', 'circ')[0] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<l,0,0>'
+        turn_off:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<d,0,0>'
+      # Luz do corredor principal
+      c1_cp:
+        friendly_name: "Corredor Principal"
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_secundaria', 'circ')[1] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<l,1,0>'
+        turn_off:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<d,1,0>'
+      # Luz do fundo do corredor
+      c2_cf:
+        friendly_name: "Corredor Fundo"
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_secundaria', 'circ')[2] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<l,2,0>'
+        turn_off:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<d,2,0>'
+      # Luz do escritório
+      c3_e:
+        friendly_name: "Escritório"
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_secundaria', 'circ')[3] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<l,3,0>'
+        turn_off:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<d,3,0>'
+      # Luz dimmer da sanca da TV
+      d1_sct:
+        friendly_name: "Sanca TV"
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circdm') != None %}
+            {% set t = state_attr('sensor.auto_secundaria', 'circdm')[1] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        level_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circdm') != None %}
+            {% set t = (state_attr('sensor.auto_secundaria', 'circdm')[1] * 2.55) | int %}
+            {{ t }}
+          {% else %}
+            0
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<m,1,100>'
+        turn_off:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<e,1,0>'
+        set_level:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              brightness: '{{ brightness }}'
+              arg: '<b,1,{{ brightness * 100 / 255 }}>'
+
+  ################################################################
+  # circ: auto_suite
+  #
+      # Luz da porta da suíte
+      c0_cs:
+        friendly_name: "Porta suíte"
+        value_template: >-
+          {% if states('sensor.result_suite') != 'unknown' and states('sensor.result_suite') != None %}
+            {{ states.sensor.result_suite.state
+            | regex_findall_index('\"circ\":(\[.*?\])')
+            | regex_findall_index('\[(.*)\]')
+            | regex_findall_index('(-?\d+\.?\d*),?', 0)
+            | int == 1
+            }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: '<l,0,0>'
+        turn_off:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: '<d,0,0>'
+      # Luz do centro da suíte
+      c1_s:
+        friendly_name: "Suíte"
+        value_template: >-
+          {% if states('sensor.result_suite') != 'unknown' and states('sensor.result_suite') != None %}
+            {{ states.sensor.result_suite.state
+            | regex_findall_index('\"circ\":(\[.*?\])')
+            | regex_findall_index('\[(.*)\]')
+            | regex_findall_index('(-?\d+\.?\d*),?', 1)
+            | int == 1
+            }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: '<l,1,0>'
+        turn_off:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: '<d,1,0>'
+      # Luz da cabeceira da cama da suíte
+      c2_bs:
+        friendly_name: "Cabeceira suíte"
+        value_template: >-
+          {% if states('sensor.result_suite') != 'unknown' and states('sensor.result_suite') != None %}
+            {{ states.sensor.result_suite.state
+            | regex_findall_index('\"circ\":(\[.*?\])')
+            | regex_findall_index('\[(.*)\]')
+            | regex_findall_index('(-?\d+\.?\d*),?', 2)
+            | int == 1
+            }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: '<l,2,0>'
+        turn_off:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: '<d,2,0>'
+              
+  ################################################################
+  # Sonoffs
+  #
+  # Luz do LED cozinha
+  - platform: mqtt
+    name: "LED cozinha"
+    state_topic: "stat/led_cozinha/POWER"
+    command_topic: "cmnd/led_cozinha/POWER"
+    availability_topic: "tele/led_cozinha/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+  #
+  # Luz da pia da cozinha
+  - platform: mqtt
+    name: "Pia cozinha"
+    state_topic: "stat/pia_cozinha/POWER"
+    command_topic: "cmnd/pia_cozinha/POWER"
+    availability_topic: "tele/pia_cozinha/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+  #
+  # Luz da coifa da cozinha
+  - platform: mqtt
+    name: "Coifa cozinha"
+    state_topic: "stat/coifa_cozinha/POWER"
+    command_topic: "cmnd/coifa_cozinha/POWER"
+    availability_topic: "tele/coifa_cozinha/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+  #
+  # Luz da prateleira da churrasqueira
+  - platform: mqtt
+    name: "Prateleira churrasqueira"
+    state_topic: "stat/luzes_churrasqueira/POWER1"
+    command_topic: "cmnd/luzes_churrasqueira/POWER1"
+    availability_topic: "tele/luzes_churrasqueira/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+  # Luz da pia da churrasqueira
+  - platform: mqtt
+    name: "Pia churrasqueira"
+    state_topic: "stat/luzes_churrasqueira/POWER2"
+    command_topic: "cmnd/luzes_churrasqueira/POWER2"
+    availability_topic: "tele/luzes_churrasqueira/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+  #
+  # Luz do quarto da Lorena
+  - platform: mqtt
+    name: "Luz quartolorena"
+    state_topic: "stat/luz_quartolorena/POWER"
+    command_topic: "cmnd/luz_quartolorena/POWER"
+    availability_topic: "tele/luz_quartolorena/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+
+  - platform: mqtt
+    name: "Lâmpada Pedro"
+    state_topic: "stat/lampada_cor_1/POWER"
+    state_value_template: "{{ value }}"
+    command_topic: "cmnd/lampada_cor_1/POWER"
+    brightness_state_topic: "stat/lampada_cor_1/DIMMER"
+    brightness_command_topic: "cmnd/lampada_cor_1/Dimmer"
+    brightness_value_template: "{{ value_json.Dimmer }}"
+    brightness_scale: 100
+    rgb_state_topic: "stat/lampada_cor_1/COLOR"
+    rgb_command_topic: "cmnd/lampada_cor_1/Color"
+    rgb_command_template: "{{ '%02x%02x%02x0000' | format(red, green, blue) }}"
+    rgb_value_template: "{{ value_json.Color[0:2]|int(base=16) }},{{ value_json.Color[2:4]|int(base=16) }},{{ value_json.Color[4:6]|int(base=16) }}"
+    color_temp_state_topic: "stat/lampada_cor_1/CT"
+    color_temp_command_topic: "cmnd/lampada_cor_1/CT"
+    color_temp_value_template: "{{ value_json.CT }}"
+    effect_state_topic: "stat/lampada_cor_1/SCHEME"
+    effect_command_topic: "cmnd/lampada_cor_1/Scheme"
+    effect_value_template: "{{ value_json.Scheme }}"
+    effect_list:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+    availability_topic: "tele/lampada_cor_1/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    qos: 1
+    payload_on: "ON"
+    payload_off: "OFF"
+    optimistic: false
+    retain: true  
+
+
+
+  - platform: mqtt
+    name: "Lâmpada América"
+    state_topic: "stat/lampada_cor_2/POWER"
+    state_value_template: "{{ value }}"
+    command_topic: "cmnd/lampada_cor_2/POWER"
+    brightness_state_topic: "stat/lampada_cor_2/DIMMER"
+    brightness_command_topic: "cmnd/lampada_cor_2/Dimmer"
+    brightness_value_template: "{{ value_json.Dimmer }}"
+    brightness_scale: 100
+    rgb_state_topic: "stat/lampada_cor_2/COLOR"
+    rgb_command_topic: "cmnd/lampada_cor_2/Color"
+    rgb_command_template: "{{ '%02x%02x%02x0000' | format(red, green, blue) }}"
+    rgb_value_template: "{{ value_json.Color[0:2]|int(base=16) }},{{ value_json.Color[2:4]|int(base=16) }},{{ value_json.Color[4:6]|int(base=16) }}"
+    color_temp_state_topic: "stat/lampada_cor_2/CT"
+    color_temp_command_topic: "cmnd/lampada_cor_2/CT"
+    color_temp_value_template: "{{ value_json.CT }}"
+    effect_state_topic: "stat/lampada_cor_2/SCHEME"
+    effect_command_topic: "cmnd/lampada_cor_2/Scheme"
+    effect_value_template: "{{ value_json.Scheme }}"
+    effect_list:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+    availability_topic: "tele/lampada_cor_2/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    qos: 1
+    payload_on: "ON"
+    payload_off: "OFF"
+    optimistic: false
+    retain: true  
+
+
+switch:
+  #########################################################
+  # 
+  - platform: mqtt
+    name: "Garrafa iluminada"
+    state_topic: "stat/luzes_churrasqueira/POWER3"
+    command_topic: "cmnd/luzes_churrasqueira/POWER3"
+    availability_topic: "tele/luzes_churrasqueira/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+#  - platform: broadlink
+#    host: 192.168.143.16
+#    mac: 'C8:F7:42:21:9F:E2'
+#    timeout: 60
+#    friendly_name: "RM sala"
+#    type: rm_mini
+#    switches:
+#      ar_sala:
+#        friendly_name: "Ar condicionado"
+#        command_on: "JgAWAWoyDwsODAwLDQ4KDwoOCygMDgsODgsOCw4LDgoPDAwNCg4LDgsOCygMDg4lDwsOCw4LDgoPCg0MDA4LDgsOCw8KKA8lDyUPCw4LDgoODQopCw4LDgsoDA4OCw4LDgsOCw4lDgsNDgoOCykLKAwNDwsODAwLDSgLKQsoDA0MKA8lDyUPJQ8lDwoOCw0OCigMDQwOCw4LDw0LDgsOCw4KDg0MCw0OCg8KDwooDA4OJQ8lDwsOCw4KDwwMCwwOCw8KDgsODgsOCw4LDgsOCw4KDg0KDgsOCw8LDgoOCw4LDwoOCw8NCw4LDgsOCwwNCw4LDQwODgsOCw4LDgsOCg4LDQ4KDwoOCygMDgsODiUPCw4lDwwMAA0FAAA="
+#        command_off: "JgAWAWgzDgsOCw4LDgsOCg4NCigMDgsOCw0PCw4LDgsOCw4LDgoODQoOCykLDgsoDA4OCw4LDgsOCg4LDQ4KDgsPCg8KKAwoDyUPCw4LDgsOCg4oCg4LKQsOCw4LDg4LDgsOCw4lDwoOJwsOCygMDQwoDA4OCw4mDiUPJQ8lDg0LKAspCygMKAwoDwoPCw4LDgsODAwNCwwMDwoPCg8KDgsODgsOCw4LDgoOCw0oCw4LKQspCw0MDg4LDgsOCw4LDgoODQoPCg4LDgsPCg4OCw4LDgsOCg8lDA4LDg4LDgsOCw4LDgwNCg4LDA4LDgsOCw0PCw4LDgsOCw4KDwoOCwwOCw4LDwoOCw4OJQ8LDiUPCw4lDg0NAA0FAAA="
+#
+#      som_sala:
+#        friendly_name: "Som da sala"
+#        command_on: "JgBgAAABJ5YSExITERQSOBE5EzgSNxIUERMSORI4ETkSExEVERMSExI4EjkSOBEUETkRFBITEhMRFRETEhQROBIUETkSOBI4EQAFSwABJ0sSAAxjAAEnTBEADGMAAShKEwANBQAAAAAAAAAA="
+#        command_off: "JgBgAAABJ5YSExITERQSOBE5EzgSNxIUERMSORI4ETkSExEVERMSExI4EjkSOBEUETkRFBITEhMRFRETEhQROBIUETkSOBI4EQAFSwABJ0sSAAxjAAEnTBEADGMAAShKEwANBQAAAAAAAAAA="
+
+
+vera:
+  vera_controller_url: http://192.168.143.15:3480/
+  exclude: [14,  17]
+
+
+fan:
+  - platform: template
+    fans:
+      escritorio:
+        friendly_name: "Escritório"
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circdm') != None %}
+            {% if states.sensor.auto_secundaria.attributes.circdm[0]|int == 0 %} off {% else %} on {% endif %}
+          {% else %}
+            off
+          {% endif %}
+        speed_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'circdm') != None %}
+            {% if states.sensor.auto_secundaria.attributes.circdm[0]|int > 70 %} high
+            {% elif states.sensor.auto_secundaria.attributes.circdm[0]|int > 40 %} medium
+            {% elif states.sensor.auto_secundaria.attributes.circdm[0]|int >= 0 %} low
+            {% endif %}
+          {% else %}
+            low
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: >-
+                {% if speed == 'low' %} '<m,0,33>'
+                {% elif speed == 'medium' %} '<m,0,66>'
+                {% elif speed == 'high' %} '<m,0,100>'
+                {% else %} '<m,0,33>'
+                {% endif %}
+        turn_off:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<e,0,0>'
+        set_speed:
+          - service: shell_command.auto_secundaria_script
+            data_template: 
+              arg: >- 
+                {% if speed == off %} '<e,0,0>'
+                {% elif speed == 'low' %} '<m,0,33>'
+                {% elif speed == 'medium' %} '<m,0,66>'
+                {% elif speed == 'high' %} '<m,0,100>'
+                {% endif %}
+        speeds:
+            - 'off'
+            - 'low'
+            - 'medium'
+            - 'high'
+
+      tv:
+        friendly_name: "TV"
+        value_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'ventdm') != None %}
+            {% if states.sensor.auto_secundaria.attributes.ventdm[0]|int == 0 %} off {% else %} on {% endif %}
+          {% else %}
+            off
+          {% endif %}
+        speed_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'ventdm') != None %}
+            {% if states.sensor.auto_secundaria.attributes.ventdm[0]|int|abs > 70 %} high
+            {% elif states.sensor.auto_secundaria.attributes.ventdm[0]|int|abs > 40 %} medium
+            {% elif states.sensor.auto_secundaria.attributes.ventdm[0]|int|abs >= 0 %} low
+            {% endif %}
+          {% else %}
+            low
+          {% endif %}
+        direction_template: >-
+          {% if state_attr('sensor.auto_secundaria', 'ventdm') != None %}
+            {% if states.sensor.auto_secundaria.attributes.ventdm[0]|int >= 0 %} forward {% else %} reverse {% endif %}
+          {% else %}
+            forward
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_secundaria_script
+            data_template: 
+              arg: >-
+                {% if speed == 'low' and direction == 'forward' %} '<n,0,33>'
+                {% elif speed == 'low' and direction == 'reverse' %} '<o,0,33>'
+                {% elif speed == 'medium' and direction == 'forward' %} '<n,0,66>'
+                {% elif speed == 'medium' and direction == 'reverse' %} '<o,0,66>'
+                {% elif speed == 'high' and direction == 'forward' %} '<n,0,100>'
+                {% elif speed == 'high' and direction == 'reverse' %} '<o,0,100>'
+                {% else %} '<n,0,33>'
+                {% endif %}
+        turn_off:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: '<f,0,0>'
+        set_speed:
+          - service: shell_command.auto_secundaria_script
+            data_template: 
+              arg: >- 
+                {% if speed == off %} '<f,0,0>'
+                {% elif speed == 'low' and states.fan.tv.attributes.direction == 'forward' %} '<n,0,33>'
+                {% elif speed == 'low' and states.fan.tv.attributes.direction == 'reverse' %} '<o,0,33>'
+                {% elif speed == 'medium' and states.fan.tv.attributes.direction == 'forward' %} '<n,0,66>'
+                {% elif speed == 'medium' and states.fan.tv.attributes.direction == 'reverse' %} '<o,0,66>'
+                {% elif speed == 'high' and states.fan.tv.attributes.direction == 'forward' %} '<n,0,100>'
+                {% elif speed == 'high' and states.fan.tv.attributes.direction == 'reverse' %} '<o,0,100>'
+                {% endif %}
+        set_direction:
+          - service: shell_command.auto_secundaria_script
+            data_template:
+              arg: >-
+                {% if states.fan.tv.attributes.speed == 'low' and direction == 'forward' %} '<n,0,33>'
+                {% elif states.fan.tv.attributes.speed == 'low' and direction == 'reverse' %} '<o,0,33>'
+                {% elif states.fan.tv.attributes.speed == 'medium' and direction == 'forward' %} '<n,0,66>'
+                {% elif states.fan.tv.attributes.speed == 'medium' and direction == 'reverse' %} '<o,0,66>'
+                {% elif states.fan.tv.attributes.speed == 'high' and direction == 'forward' %} '<n,0,100>'
+                {% elif states.fan.tv.attributes.speed == 'high' and direction == 'reverse' %} '<o,0,100>'
+                {% endif %}
+        speeds:
+            - 'off'
+            - 'low'
+            - 'medium'
+            - 'high'
+            
+
+      suite:
+        friendly_name: "Suíte"
+        value_template: >-
+            {% if states.sensor.vent_suite.state|int == 0 %} off {% else %} on {% endif %}
+        speed_template: >-
+            {% if states.sensor.vent_suite.state|int|abs == 3 %} high
+            {% elif states.sensor.vent_suite.state|int|abs == 2 %} medium
+            {% elif states.sensor.vent_suite.state|int|abs >= 0 %} low
+            {% endif %}
+        direction_template: >-
+            {% if states.sensor.vent_suite.state|int >= 0 %} forward {% else %} reverse {% endif %}
+        turn_on:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: >-
+                {% if speed == 'low' and direction == 'forward' %} '<p,0,1>'
+                {% elif speed == 'low' and direction == 'reverse' %} '<q,0,1>'
+                {% elif speed == 'medium' and direction == 'forward' %} '<p,0,2>'
+                {% elif speed == 'medium' and direction == 'reverse' %} '<q,0,2>'
+                {% elif speed == 'high' and direction == 'forward' %} '<p,0,3>'
+                {% elif speed == 'high' and direction == 'reverse' %} '<q,0,3>'
+                {% else %} '<p,0,1>'
+                {% endif %}
+        turn_off:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: '<r,0,0>'
+        set_speed:
+          - service: shell_command.auto_suite_script
+            data_template: 
+              arg: >- 
+                {% if speed == off %} '<f,0,0>'
+                {% elif speed == 'low' and states.fan.suite.attributes.direction == 'forward' %} '<p,0,1>'
+                {% elif speed == 'low' and states.fan.suite.attributes.direction == 'reverse' %} '<q,0,1>'
+                {% elif speed == 'medium' and states.fan.suite.attributes.direction == 'forward' %} '<p,0,2>'
+                {% elif speed == 'medium' and states.fan.suite.attributes.direction == 'reverse' %} '<q,0,2>'
+                {% elif speed == 'high' and states.fan.suite.attributes.direction == 'forward' %} '<p,0,3>'
+                {% elif speed == 'high' and states.fan.suite.attributes.direction == 'reverse' %} '<q,0,3>'
+                {% endif %}
+        set_direction:
+          - service: shell_command.auto_suite_script
+            data_template:
+              arg: >-
+                {% if states.fan.suite.attributes.speed == 'low' and direction == 'forward' %} '<p,0,1>'
+                {% elif states.fan.suite.attributes.speed == 'low' and direction == 'reverse' %} '<q,0,1>'
+                {% elif states.fan.suite.attributes.speed == 'medium' and direction == 'forward' %} '<p,0,2>'
+                {% elif states.fan.suite.attributes.speed == 'medium' and direction == 'reverse' %} '<q,0,2>'
+                {% elif states.fan.suite.attributes.speed == 'high' and direction == 'forward' %} '<p,0,3>'
+                {% elif states.fan.suite.attributes.speed == 'high' and direction == 'reverse' %} '<q,0,3>'
+                {% endif %}
+        speeds:
+            - 'off'
+            - 'low'
+            - 'medium'
+            - 'high'
+          
+media_player:
+  - platform: braviatv
+    host: 192.168.143.45
+                
+
+
+
+shell_command:
+  auto_principal_script: '/home/hassmurguis/.homeassistant/echo_auto_principal.sh "{{ arg }}"'
+  auto_secundaria_script: '/home/hassmurguis/.homeassistant/echo_auto_secundaria.sh "{{ arg }}"'
+  auto_suite_script: '/home/hassmurguis/.homeassistant/echo_auto_suite.sh "{{ arg }}"'
+  auto_debug_script: '/home/hassmurguis/.homeassistant/echo_auto_debug.sh "{{ arg }}"'
+
+
+homekit:
+  filter:
+    include_entities:
+      # Sala
+      - light.c0_porta
+      - light.c1_mesa2
+      - light.c2_mesa4
+      - light.c3_centro2
+      - light.c4_centro4
+      - light.d1_scp
+      - light.d1_sct
+      - light.c0_tv
+      - sensor.temp_tv
+      - sensor.umid_tv
+      - fan.tv
+      - switch.ar_sala
+      - switch.som_sala
+#      - media_player.tv_da_sala
+      - lock.porta_6
+      - binary_sensor.sensor_porta_sala_15
+      # Cozinha
+      - light.c5_cozinha1
+      - light.c6_cozinha2
+      - light.c7_aservico
+      - light.c8_bservico
+      - light.led_cozinha
+      - light.pia_cozinha
+      - light.coifa_cozinha
+      - lock.fechadura_cozinha_7
+      - binary_sensor.sensor_porta_cozinha_21
+      - binary_sensor.sensor_jan_cozinha_23
+      - binary_sensor.sensor_jan_aservico_25
+      # Varanda
+      - light.d0_vrd
+      - light.prateleira_churrasqueira
+      - light.pia_churrasqueira
+      - sensor.temperatura_varanda
+      - sensor.umidade_varanda
+      - sensor.pressao_atmosferica
+      - switch.garrafa_iluminada
+      # Corredor
+      - light.c1_cp
+      - light.c2_cf
+      # Escritório
+      - light.c3_e
+      - sensor.temperatura_escritorio
+      - sensor.umidade_escritorio
+      - sensor.iluminancia_escritorio
+      - binary_sensor.movimento_escritorio
+      - fan.escritorio
+      # Suíte
+      - light.c0_cs
+      - light.c1_s
+      - light.c2_bs
+      - fan.suite
+      - sensor.temp_suite
+      - sensor.umid_suite
+      - light.lampada_pedro
+      - light.lampada_america
+      # Quarto Lorena
+      - sensor.temperatura_quartolorena
+      - sensor.umidade_quartolorena
+      - light.luz_quartolorena
+      # Automação
+      - sensor.temp_autoprincipal
+      - sensor.temp_autosecundaria
+      - sensor.temp_autosuite
+#    entity_config:
+#      media_player.tv_da_sala:
+#        feature_list:
+#          - feature: on_off

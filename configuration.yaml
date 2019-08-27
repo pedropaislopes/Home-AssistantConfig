@@ -85,6 +85,10 @@ group: !include groups.yaml
 automation: !include automations.yaml
 script: !include scripts.yaml
 
+weather:
+  - platform: darksky
+    api_key: 315a11e787a3067aaa2b6d6031dc7efa
+
 mqtt:
   broker: localhost
   username: !secret mqtt_murguis_username
@@ -107,10 +111,64 @@ ios:
 binary_sensor:
   - platform: mqtt
     name: "Movimento escritório"
-    state_topic: "nodered/escritorio/movimento"
+    state_topic: "stat/sensor_escritorio/POWER"
     payload_on: 'ON'
     payload_off: 'OFF'
-
+  - platform: mqtt
+    name: "Janela cozinha"
+    payload_on: "5E170A"
+    payload_off: "5E170E"
+    state_topic: "tele/rfbridge/RESULT"
+    value_template: '{{value_json.RfReceived.Data}}'
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    device_class: Window
+    qos: 1
+  - platform: mqtt
+    name: "Janela área de serviço"
+    payload_on: "5BEC0A"
+    payload_off: "5BEC0E"
+    state_topic: "tele/rfbridge/RESULT"
+    value_template: '{{value_json.RfReceived.Data}}'
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    device_class: Window
+    qos: 1
+  - platform: mqtt
+    name: "Janela escritório"
+    payload_on: "5A9D0A"
+    payload_off: "5A9D0E"
+    state_topic: "tele/rfbridge/RESULT"
+    value_template: '{{value_json.RfReceived.Data}}'
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    device_class: Window
+    qos: 1
+  - platform: mqtt
+    name: "Janela quartolorena"
+    payload_on: "59C80A"
+    payload_off: "59C80E"
+    state_topic: "tele/rfbridge/RESULT"
+    value_template: '{{value_json.RfReceived.Data}}'
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    device_class: Window
+    qos: 1
+  - platform: mqtt
+    name: "Janela suíte"
+    payload_on: "5C9C0A"
+    payload_off: "5C9C0E"
+    state_topic: "tele/rfbridge/RESULT"
+    value_template: '{{value_json.RfReceived.Data}}'
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    device_class: Window
+    qos: 1
 
 
 sensor:
@@ -126,14 +184,14 @@ sensor:
 
   - platform: serial
     name: auto_principal
-    serial_port: /dev/ttyUSB0
-#    serial_port: /dev/null
+#    serial_port: /dev/ttyUSB0
+    serial_port: /dev/null
     baudrate: 115200
     value_template: '{{ value_json }}'
   - platform: serial
     name: auto_secundaria
-    serial_port: /dev/ttyACM0
-#    serial_port: /dev/null
+#    serial_port: /dev/ttyACM0
+    serial_port: /dev/null
     baudrate: 115200
     value_template: '{{ value_json }}'
 
@@ -347,6 +405,9 @@ sensor:
     state_topic: "tele/auto_suite/RESULT"
     value_template: >-
       '{{ value|regex_replace(find="{\"SerialReceived\":\"", replace="",ignorecase=False)|regex_replace(find="\"}", replace="",ignorecase=False) }}'
+    availability_topic: "tele/auto_suite/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
 
   ###########################################################
   # Status dos sonoffs (Wi-Fi e versão)
@@ -521,9 +582,48 @@ sensor:
     availability_topic: "tele/lampada_cor_2/LWT"
     payload_available: "Online"
     payload_not_available: "Offline"
-
-
-    
+  # luzes_aservico
+  - platform: mqtt
+    name: "Luzes Área Serviço"
+    state_topic: "stat/luzes_aservico/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/luzes_aservico/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/luzes_aservico/STATE"
+    name: "Luzes Área Serviço WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/luzes_aservico/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  # rfbridge (com sensor)
+  - platform: mqtt
+    name: "RF Bridge"
+    state_topic: "stat/rfbridge/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/rfbridge/STATE"
+    name: "RF Bridge WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    name: "Result RF Bridge"
+    state_topic: "tele/rfbridge/RESULT"
+    value_template: '{{value_json.RfReceived.Data}}'
+    availability_topic: "tele/rfbridge/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+   
 
 light:
   ################################################################
@@ -656,42 +756,6 @@ light:
           - service: shell_command.auto_principal_script
             data_template:
               arg: '<d,6,0>'
-      # Luz do centro da área de serviço
-      c7_aservico:
-        friendly_name: "Área de Serviço"
-        value_template: >-
-          {% if state_attr('sensor.auto_principal', 'circ') != None %}
-            {% set t = state_attr('sensor.auto_principal', 'circ')[7] | int %}
-            {{ 'off' if t == 0 else 'on' }}
-          {% else %}
-            off
-          {% endif %}
-        turn_on:
-          - service: shell_command.auto_principal_script
-            data_template:
-              arg: '<l,7,0>'
-        turn_off:
-          - service: shell_command.auto_principal_script
-            data_template:
-              arg: '<d,7,0>'
-      # Luz do banheiro de empregada
-      c8_bservico:
-        friendly_name: "Banheiro de Empregada"
-        value_template: >-
-          {% if state_attr('sensor.auto_principal', 'circ') != None %}
-            {% set t = state_attr('sensor.auto_principal', 'circ')[8] | int %}
-            {{ 'off' if t == 0 else 'on' }}
-          {% else %}
-            off
-          {% endif %}
-        turn_on:
-          - service: shell_command.auto_principal_script
-            data_template:
-              arg: '<l,8,0>'
-        turn_off:
-          - service: shell_command.auto_principal_script
-            data_template:
-              arg: '<d,8,0>'
       # Luz dimmer da varanda
       d0_vrd:
         friendly_name: "Varanda"
@@ -1008,8 +1072,36 @@ light:
     payload_available: "Online"
     payload_not_available: "Offline"
     retain: false
-
+  #
+  # Luz do banheiro de empregada
   - platform: mqtt
+    name: "Banheiro de Empregada"
+    state_topic: "stat/luzes_aservico/POWER1"
+    command_topic: "cmnd/luzes_aservico/POWER1"
+    availability_topic: "tele/luzes_aservico/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+  # Luz da área de serviço
+  - platform: mqtt
+    name: "Área de Serviço"
+    state_topic: "stat/luzes_aservico/POWER2"
+    command_topic: "cmnd/luzes_aservico/POWER2"
+    availability_topic: "tele/luzes_aservico/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+
+    
+    
+  - platform: mqtt
+    # Vide: https://community.home-assistant.io/t/sonoff-b1-led-wifi-bulb-template-error-in-log/28690/8
     name: "Lâmpada Pedro"
     state_topic: "stat/lampada_cor_1/POWER"
     state_value_template: "{{ value }}"
@@ -1041,11 +1133,11 @@ light:
     payload_on: "ON"
     payload_off: "OFF"
     optimistic: false
-    retain: true  
-
+    retain: false  
 
 
   - platform: mqtt
+    # Vide: https://community.home-assistant.io/t/sonoff-b1-led-wifi-bulb-template-error-in-log/28690/8
     name: "Lâmpada América"
     state_topic: "stat/lampada_cor_2/POWER"
     state_value_template: "{{ value }}"
@@ -1077,7 +1169,7 @@ light:
     payload_on: "ON"
     payload_off: "OFF"
     optimistic: false
-    retain: true  
+    retain: false  
 
 
 switch:
@@ -1335,7 +1427,6 @@ homekit:
       - lock.fechadura_cozinha_7
       - binary_sensor.sensor_porta_cozinha_21
       - binary_sensor.sensor_jan_cozinha_23
-      - binary_sensor.sensor_jan_aservico_25
       # Varanda
       - light.d0_vrd
       - light.prateleira_churrasqueira
@@ -1344,6 +1435,7 @@ homekit:
       - sensor.umidade_varanda
       - sensor.pressao_atmosferica
       - switch.garrafa_iluminada
+      - binary_sensor.sensor_jan_varpeque_25
       # Corredor
       - light.c1_cp
       - light.c2_cf

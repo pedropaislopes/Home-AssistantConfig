@@ -1,10 +1,14 @@
-binary_sensor.sensor_jan_cozinha_23:
-  device_class: window
-binary_sensor.sensor_jan_aservico_25:
-  device_class: window
 binary_sensor.sensor_porta_cozinha_21:
   device_class: door
 binary_sensor.sensor_porta_sala_15:
   device_class: door
 binary_sensor.movimento_escritorio:
   device_class: motion
+binary_sensor.sensor_vidro_varchur_25:
+  device_class: window
+  friendly_name: Vidro churrasqueira
+switch.sensor_vidro_varchur_25:
+  friendly_name: Vidro churrasqueira
+binary_sensor.sensor_vidro_vargd_23:
+  device_class: window
+  friendly_name: Vidro varanda grande

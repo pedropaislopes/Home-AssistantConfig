@@ -184,14 +184,14 @@ sensor:
 
   - platform: serial
     name: auto_principal
-#    serial_port: /dev/ttyUSB0
-    serial_port: /dev/null
+    serial_port: /dev/ttyUSB0
+#    serial_port: /dev/null
     baudrate: 115200
     value_template: '{{ value_json }}'
   - platform: serial
     name: auto_secundaria
-#    serial_port: /dev/ttyACM0
-    serial_port: /dev/null
+    serial_port: /dev/ttyACM0
+#    serial_port: /dev/null
     baudrate: 115200
     value_template: '{{ value_json }}'
 

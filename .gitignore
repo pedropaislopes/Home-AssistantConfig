@@ -10,6 +10,7 @@
 !*.sh
 !custom_components
 !cronfile
+!python_scripts
 
 # Ignore folders.
 .storage

@@ -46,3 +46,13 @@
       data:
         topic: "cmnd/sonoffs/STATUS"
         payload: "0"
+
+- alias: 'rfbridge_demultiplexer'
+  trigger:
+  - platform: mqtt
+    topic: tele/rfbridge/RESULT
+  action:
+  - service: python_script.rfbridge_demux
+    data_template:
+      payload: '{{trigger.payload_json.RfReceived.Data}}'
+

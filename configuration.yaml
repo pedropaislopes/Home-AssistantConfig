@@ -63,6 +63,7 @@ sun:
 system_health:
 updater:
 zeroconf:
+python_script:
 
 logger:
   default: warn
@@ -116,59 +117,24 @@ binary_sensor:
     payload_off: 'OFF'
   - platform: mqtt
     name: "Janela cozinha"
-    payload_on: "5E170A"
-    payload_off: "5E170E"
-    state_topic: "tele/rfbridge/RESULT"
-    value_template: '{{value_json.RfReceived.Data}}'
-    availability_topic: "tele/rfbridge/LWT"
-    payload_available: "Online"
-    payload_not_available: "Offline"
+    state_topic: "home/janela_cozinha"
     device_class: Window
-    qos: 1
   - platform: mqtt
     name: "Janela área de serviço"
-    payload_on: "5BEC0A"
-    payload_off: "5BEC0E"
-    state_topic: "tele/rfbridge/RESULT"
-    value_template: '{{value_json.RfReceived.Data}}'
-    availability_topic: "tele/rfbridge/LWT"
-    payload_available: "Online"
-    payload_not_available: "Offline"
+    state_topic: "home/janela_aservico"
     device_class: Window
-    qos: 1
   - platform: mqtt
     name: "Janela escritório"
-    payload_on: "5A9D0A"
-    payload_off: "5A9D0E"
-    state_topic: "tele/rfbridge/RESULT"
-    value_template: '{{value_json.RfReceived.Data}}'
-    availability_topic: "tele/rfbridge/LWT"
-    payload_available: "Online"
-    payload_not_available: "Offline"
+    state_topic: "home/janela_escritorio"
     device_class: Window
-    qos: 1
   - platform: mqtt
     name: "Janela quartolorena"
-    payload_on: "59C80A"
-    payload_off: "59C80E"
-    state_topic: "tele/rfbridge/RESULT"
-    value_template: '{{value_json.RfReceived.Data}}'
-    availability_topic: "tele/rfbridge/LWT"
-    payload_available: "Online"
-    payload_not_available: "Offline"
+    state_topic: "home/janela_quartolorena"
     device_class: Window
-    qos: 1
   - platform: mqtt
     name: "Janela suíte"
-    payload_on: "5C9C0A"
-    payload_off: "5C9C0E"
-    state_topic: "tele/rfbridge/RESULT"
-    value_template: '{{value_json.RfReceived.Data}}'
-    availability_topic: "tele/rfbridge/LWT"
-    payload_available: "Online"
-    payload_not_available: "Offline"
+    state_topic: "home/janela_suite"
     device_class: Window
-    qos: 1
 
 
 sensor:
@@ -1426,7 +1392,8 @@ homekit:
       - light.coifa_cozinha
       - lock.fechadura_cozinha_7
       - binary_sensor.sensor_porta_cozinha_21
-      - binary_sensor.sensor_jan_cozinha_23
+      - binary_sensor.janela_area_de_servico
+      - binary_sensor.janela_cozinha
       # Varanda
       - light.d0_vrd
       - light.prateleira_churrasqueira
@@ -1435,7 +1402,8 @@ homekit:
       - sensor.umidade_varanda
       - sensor.pressao_atmosferica
       - switch.garrafa_iluminada
-      - binary_sensor.sensor_jan_varpeque_25
+      - binary_sensor.sensor_vidro_varchur_25
+      - binary_sensor.sensor_vidro_vargd_23
       # Corredor
       - light.c1_cp
       - light.c2_cf
@@ -1445,6 +1413,7 @@ homekit:
       - sensor.umidade_escritorio
       - sensor.iluminancia_escritorio
       - binary_sensor.movimento_escritorio
+      - binary_sensor.janela_escritorio
       - fan.escritorio
       # Suíte
       - light.c0_cs
@@ -1455,10 +1424,12 @@ homekit:
       - sensor.umid_suite
       - light.lampada_pedro
       - light.lampada_america
+      - binary_sensor.janela_suite
       # Quarto Lorena
       - sensor.temperatura_quartolorena
       - sensor.umidade_quartolorena
       - light.luz_quartolorena
+      - binary_sensor.janela_quartolorena
       # Automação
       - sensor.temp_autoprincipal
       - sensor.temp_autosecundaria

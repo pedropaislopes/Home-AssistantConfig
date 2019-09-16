@@ -1,13 +1,19 @@
-d = { '5E170A':['janela_cozinha'     ,'ON' ,'true'],
-      '5E170E':['janela_cozinha'     ,'OFF','true'],
-      '5BEC0A':['janela_aservico'    ,'ON' ,'true'],
-      '5BEC0E':['janela_aservico'    ,'OFF','true'],
+d = { '5BEC0A':['porta_sala'         ,'ON' ,'true'],
+      '5BEC0E':['porta_sala'         ,'OFF','true'],
+      '5E170A':['vidro_vargd'        ,'ON' ,'true'],
+      '5E170E':['vidro_vargd'        ,'OFF','true'],
       '5A9D0A':['janela_escritorio'  ,'ON' ,'true'],
       '5A9D0E':['janela_escritorio'  ,'OFF','true'],
       '59C80A':['janela_quartolorena','ON' ,'true'],
       '59C80E':['janela_quartolorena','OFF','true'],
       '5C9C0A':['janela_suite'       ,'ON' ,'true'],
-      '5C9C0E':['janela_suite'       ,'OFF','true']
+      '5C9C0E':['janela_suite'       ,'OFF','true'],
+      '5C0A0A':['vidro_varpq'        ,'ON' ,'true'],
+      '5C0A0E':['vidro_varpq'        ,'OFF','true'],
+      '5D7C0A':['persiana_suite'     ,'ON' ,'true'],
+      '5D7C0E':['persiana_suite'     ,'OFF','true'],
+      '5DE40A':['persiana_lorena'    ,'ON' ,'true'],
+      '5DE40E':['persiana_lorena'    ,'OFF','true']
     }
 
 p = data.get('payload')

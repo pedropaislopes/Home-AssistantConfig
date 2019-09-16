@@ -68,7 +68,7 @@ python_script:
 logger:
   default: warn
   logs:
-    braviarc: fatal
+    braviarc: critical
 #    pyvera: debug
 #    homeassistant.components.serial: debug
   
@@ -115,13 +115,14 @@ binary_sensor:
     state_topic: "stat/sensor_escritorio/POWER"
     payload_on: 'ON'
     payload_off: 'OFF'
+    device_class: motion
   - platform: mqtt
-    name: "Janela cozinha"
-    state_topic: "home/janela_cozinha"
-    device_class: Window
+    name: "Porta sala"
+    state_topic: "home/porta_sala"
+    device_class: Door
   - platform: mqtt
-    name: "Janela área de serviço"
-    state_topic: "home/janela_aservico"
+    name: "Vidro varanda grande"
+    state_topic: "home/vidro_vargd"
     device_class: Window
   - platform: mqtt
     name: "Janela escritório"
@@ -135,6 +136,18 @@ binary_sensor:
     name: "Janela suíte"
     state_topic: "home/janela_suite"
     device_class: Window
+  - platform: mqtt
+    name: "Vidro varanda pequeno"
+    state_topic: "home/vidro_varpq"
+    device_class: Window
+  - platform: mqtt
+    name: "Persiana suíte"
+    state_topic: "home/persiana_suite"
+    device_class: Opening
+  - platform: mqtt
+    name: "Persiana Quartolorena"
+    state_topic: "home/persiana_quartolorena"
+    device_class: Opening
 
 
 sensor:
@@ -1381,7 +1394,7 @@ homekit:
       - switch.som_sala
 #      - media_player.tv_da_sala
       - lock.porta_6
-      - binary_sensor.sensor_porta_sala_15
+      - binary_sensor.porta_sala
       # Cozinha
       - light.c5_cozinha1
       - light.c6_cozinha2
@@ -1392,8 +1405,8 @@ homekit:
       - light.coifa_cozinha
       - lock.fechadura_cozinha_7
       - binary_sensor.sensor_porta_cozinha_21
-      - binary_sensor.janela_area_de_servico
-      - binary_sensor.janela_cozinha
+      - binary_sensor.sensor_jan_aservico_23
+      - binary_sensor.sensor_jan_cozinha_15
       # Varanda
       - light.d0_vrd
       - light.prateleira_churrasqueira
@@ -1403,7 +1416,8 @@ homekit:
       - sensor.pressao_atmosferica
       - switch.garrafa_iluminada
       - binary_sensor.sensor_vidro_varchur_25
-      - binary_sensor.sensor_vidro_vargd_23
+      - binary_sensor.vidro_varanda_pequeno
+      - binary_sensor.vidro_varanda_grande
       # Corredor
       - light.c1_cp
       - light.c2_cf
@@ -1425,11 +1439,13 @@ homekit:
       - light.lampada_pedro
       - light.lampada_america
       - binary_sensor.janela_suite
+      - binary_sensor.persiana_suite
       # Quarto Lorena
       - sensor.temperatura_quartolorena
       - sensor.umidade_quartolorena
       - light.luz_quartolorena
       - binary_sensor.janela_quartolorena
+      - binary_sensor.persiana_quartolorena
       # Automação
       - sensor.temp_autoprincipal
       - sensor.temp_autosecundaria

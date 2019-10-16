@@ -117,10 +117,6 @@ binary_sensor:
     payload_off: 'OFF'
     device_class: motion
   - platform: mqtt
-    name: "Porta sala"
-    state_topic: "home/porta_sala"
-    device_class: Door
-  - platform: mqtt
     name: "Vidro varanda grande"
     state_topic: "home/vidro_vargd"
     device_class: Window
@@ -135,6 +131,10 @@ binary_sensor:
   - platform: mqtt
     name: "Janela suíte"
     state_topic: "home/janela_suite"
+    device_class: Window
+  - platform: mqtt
+    name: "Vidro varanda churrasqueira"
+    state_topic: "home/vidro_varchur"
     device_class: Window
   - platform: mqtt
     name: "Vidro varanda pequeno"
@@ -1394,7 +1394,7 @@ homekit:
       - switch.som_sala
 #      - media_player.tv_da_sala
       - lock.porta_6
-      - binary_sensor.porta_sala
+      - binary_sensor.sensor_porta_sala_25
       # Cozinha
       - light.c5_cozinha1
       - light.c6_cozinha2
@@ -1415,7 +1415,7 @@ homekit:
       - sensor.umidade_varanda
       - sensor.pressao_atmosferica
       - switch.garrafa_iluminada
-      - binary_sensor.sensor_vidro_varchur_25
+      - binary_sensor.vidro_varanda_churrasqueira
       - binary_sensor.vidro_varanda_pequeno
       - binary_sensor.vidro_varanda_grande
       # Corredor

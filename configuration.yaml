@@ -50,6 +50,7 @@ device_tracker:
     hosts:
       iphonepedro_ping_arp: 192.168.143.60
       iphoneamerica_ping_arp: 192.168.143.61
+#  - platform: bluetooth_tracker
 
 config:
 #conversation:
@@ -148,6 +149,12 @@ binary_sensor:
     name: "Persiana Quartolorena"
     state_topic: "home/persiana_quartolorena"
     device_class: Opening
+  - platform: mqtt
+    name: "Movimento cozinha"
+    state_topic: "stat/sensor_cozinha/POWER"
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    device_class: motion
 
 
 sensor:
@@ -315,7 +322,34 @@ sensor:
             unavailable
           {% endif %}
           
-
+  ############################################################3
+  # Sensores no sensor_cozinha
+  - platform: mqtt
+    device_class: temperature
+    name: "Temperatura Cozinha"
+    state_topic: "tele/sensor_cozinha/SENSOR"
+    value_template: "{{ value_json.BME280.Temperature }}"
+    unit_of_measurement: '°C'
+  - platform: mqtt
+    device_class: humidity
+    name: "Umidade Cozinha"
+    state_topic: "tele/sensor_cozinha/SENSOR"
+    value_template: "{{ value_json.BME280.Humidity }}"
+    unit_of_measurement: "%"
+  - platform: mqtt
+    device_class: pressure
+    name: "Pressão atmosférica"
+    state_topic: "tele/sensor_cozinha/SENSOR"
+    value_template: "{{ value_json.BME280.Pressure }}"
+    unit_of_measurement: "hPa"
+  - platform: mqtt
+    device_class: humidity
+    name: "Iluminância Cozinha"
+    state_topic: "tele/sensor_cozinha/SENSOR"
+    value_template: "{{ value_json.TSL2561.Illuminance }}"
+    unit_of_measurement: "lm"
+           
+ 
   ############################################################3
   # Sensores no sensor_escritorio
   - platform: mqtt
@@ -493,7 +527,24 @@ sensor:
     availability_topic: "tele/luz_quartolorena/LWT"
     payload_available: "Online"
     payload_not_available: "Offline"
-  # auto_suite
+   # serie_varanda
+  - platform: mqtt
+    name: "Série varanda"
+    state_topic: "stat/serie_varanda/STATUS2"
+    value_template: "{{value_json['StatusFWR'].Version }}"
+    qos: 0
+    availability_topic: "tele/serie_varanda/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+  - platform: mqtt
+    state_topic: "tele/serie_varanda/STATE"
+    name: "Série varanda WI-FI"
+    unit_of_measurement: "%"
+    value_template: "{{value_json['Wifi'].RSSI }}"
+    availability_topic: "tele/serie_varanda/LWT"
+    payload_available: "Online"
+    payload_not_available: "Offline"
+ # auto_suite
   - platform: mqtt
     name: "Auto suíte"
     state_topic: "stat/auto_suite/STATUS2"
@@ -559,23 +610,6 @@ sensor:
     unit_of_measurement: "%"
     value_template: "{{value_json['Wifi'].RSSI }}"
     availability_topic: "tele/lampada_cor_2/LWT"
-    payload_available: "Online"
-    payload_not_available: "Offline"
-  # luzes_aservico
-  - platform: mqtt
-    name: "Luzes Área Serviço"
-    state_topic: "stat/luzes_aservico/STATUS2"
-    value_template: "{{value_json['StatusFWR'].Version }}"
-    qos: 0
-    availability_topic: "tele/luzes_aservico/LWT"
-    payload_available: "Online"
-    payload_not_available: "Offline"
-  - platform: mqtt
-    state_topic: "tele/luzes_aservico/STATE"
-    name: "Luzes Área Serviço WI-FI"
-    unit_of_measurement: "%"
-    value_template: "{{value_json['Wifi'].RSSI }}"
-    availability_topic: "tele/luzes_aservico/LWT"
     payload_available: "Online"
     payload_not_available: "Offline"
   # rfbridge (com sensor)
@@ -717,7 +751,7 @@ light:
           - service: shell_command.auto_principal_script
             data_template:
               arg: '<d,5,0>'
-      # Luz do centro da sala forte
+      # Luz do centro da cozinha forte
       c6_cozinha2:
         friendly_name: "Cozinha média"
         value_template: >-
@@ -735,6 +769,42 @@ light:
           - service: shell_command.auto_principal_script
             data_template:
               arg: '<d,6,0>'
+      # Luz do centro da área de serviço
+      c7_aservico:
+        friendly_name: "Área de Serviço"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[7] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,7,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,7,0>'
+      # Luz do banheiro de empregada
+      c8_bservico:
+        friendly_name: "Banheiro de Empregada"
+        value_template: >-
+          {% if state_attr('sensor.auto_principal', 'circ') != None %}
+            {% set t = state_attr('sensor.auto_principal', 'circ')[8] | int %}
+            {{ 'off' if t == 0 else 'on' }}
+          {% else %}
+            off
+          {% endif %}
+        turn_on:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<l,8,0>'
+        turn_off:
+          - service: shell_command.auto_principal_script
+            data_template:
+              arg: '<d,8,0>'
       # Luz dimmer da varanda
       d0_vrd:
         friendly_name: "Varanda"
@@ -1052,30 +1122,6 @@ light:
     payload_not_available: "Offline"
     retain: false
   #
-  # Luz do banheiro de empregada
-  - platform: mqtt
-    name: "Banheiro de Empregada"
-    state_topic: "stat/luzes_aservico/POWER1"
-    command_topic: "cmnd/luzes_aservico/POWER1"
-    availability_topic: "tele/luzes_aservico/LWT"
-    qos: 1
-    payload_on: 'ON'
-    payload_off: 'OFF'
-    payload_available: "Online"
-    payload_not_available: "Offline"
-    retain: false
-  # Luz da área de serviço
-  - platform: mqtt
-    name: "Área de Serviço"
-    state_topic: "stat/luzes_aservico/POWER2"
-    command_topic: "cmnd/luzes_aservico/POWER2"
-    availability_topic: "tele/luzes_aservico/LWT"
-    qos: 1
-    payload_on: 'ON'
-    payload_off: 'OFF'
-    payload_available: "Online"
-    payload_not_available: "Offline"
-    retain: false
 
     
     
@@ -1154,6 +1200,19 @@ light:
 switch:
   #########################################################
   # 
+  # Serie de natal na varanda
+  - platform: mqtt
+    name: "Série varanda"
+    state_topic: "stat/serie_varanda/POWER"
+    command_topic: "cmnd/serie_varanda/POWER"
+    availability_topic: "tele/serie_varanda/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+
   - platform: mqtt
     name: "Garrafa iluminada"
     state_topic: "stat/luzes_churrasqueira/POWER3"
@@ -1162,6 +1221,21 @@ switch:
     qos: 1
     payload_on: 'ON'
     payload_off: 'OFF'
+    payload_available: "Online"
+    payload_not_available: "Offline"
+    retain: false
+  #########################################################
+  # 
+  - platform: mqtt
+    name: "Ar condicionado"
+    state_topic: "stat/ac_sala/POWER3"
+    command_topic: "cmnd/ac_sala/POWER1"
+    availability_topic: "tele/ac_sala/LWT"
+    qos: 1
+    payload_on: 'ON'
+    payload_off: 'ON'
+    state_on: 'ON'
+    state_off: 'OFF'
     payload_available: "Online"
     payload_not_available: "Offline"
     retain: false
@@ -1390,11 +1464,10 @@ homekit:
       - sensor.temp_tv
       - sensor.umid_tv
       - fan.tv
-      - switch.ar_sala
-      - switch.som_sala
+      - switch.ar_condicionado
+      - lock.fechadura_sala_11
+      - binary_sensor.porta_sala_20
 #      - media_player.tv_da_sala
-      - lock.porta_6
-      - binary_sensor.sensor_porta_sala_25
       # Cozinha
       - light.c5_cozinha1
       - light.c6_cozinha2
@@ -1403,10 +1476,10 @@ homekit:
       - light.led_cozinha
       - light.pia_cozinha
       - light.coifa_cozinha
-      - lock.fechadura_cozinha_7
-      - binary_sensor.sensor_porta_cozinha_21
-      - binary_sensor.sensor_jan_aservico_23
-      - binary_sensor.sensor_jan_cozinha_15
+      - lock.fechadura_cozinha_12
+      - binary_sensor.porta_cozinha_16
+      - binary_sensor.janela_aservico_18
+      - binary_sensor.janela_cozinha_25
       # Varanda
       - light.d0_vrd
       - light.prateleira_churrasqueira
@@ -1414,10 +1487,10 @@ homekit:
       - sensor.temperatura_varanda
       - sensor.umidade_varanda
       - sensor.pressao_atmosferica
-      - switch.garrafa_iluminada
       - binary_sensor.vidro_varanda_churrasqueira
       - binary_sensor.vidro_varanda_pequeno
       - binary_sensor.vidro_varanda_grande
+      - switch.serie_varanda
       # Corredor
       - light.c1_cp
       - light.c2_cf

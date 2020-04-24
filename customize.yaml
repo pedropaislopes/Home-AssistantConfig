@@ -1,12 +1,8 @@
-binary_sensor.sensor_porta_cozinha_21:
-  device_class: door
-  friendly_name: Porta Cozinha
-binary_sensor.sensor_jan_aservico_23:
+binary_sensor.janela_aservico_18:
   device_class: window
-  friendly_name: Janela Área de Serviço
-binary_sensor.sensor_jan_cozinha_15:
+binary_sensor.janela_cozinha_25:
   device_class: window
-  friendly_name: Janela Cozinha
-binary_sensor.sensor_porta_sala_25:
+binary_sensor.porta_sala_20:
   device_class: door
-binary_sensor.vidro_varanda_churrasqueira: {}
+binary_sensor.porta_cozinha_16:
+  device_class: door
